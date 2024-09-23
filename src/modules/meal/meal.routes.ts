@@ -1,49 +1,59 @@
-import { FastifyInstance } from 'fastify'
-import { knex } from '../database'
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import { knex } from '../../database'
 import { z } from 'zod'
+import { $ref, CreateAndUpdateMealInput } from './meal.schema'
 
 export async function mealsRoutes(app: FastifyInstance) {
-  app.get('/', async (req, res) => {
-    const meals = await knex('meals').select('*')
+  app.get(
+    '/',
+    {
+      preHandler: [app.authenticate],
+    },
+    async (req, res) => {
+      const meals = await knex('meals').select('*')
 
-    res.status(200).send({ meals })
-  })
+      res.status(200).send({ meals })
+    },
+  )
 
-  app.post('/', async (req, res) => {
-    const mealsBodySchema = z.object({
-      name: z.string(),
-      description: z.string(),
-      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
-        message: 'Invalid date format. Expected YYYY-MM-DD.',
-      }),
-      hour: z.string().regex(/^([0-1]\d|2[0-3]):([0-5]\d)$/, {
-        message: 'Invalid hour format. Expected HH:mm.',
-      }),
-      user_id: z.number(),
-      isInDiet: z.boolean(),
-    })
+  app.post(
+    '/',
+    {
+      schema: {
+        body: $ref('createAndUpdateMealSchema'),
+        response: {
+          201: $ref('createAndUpdateMealResponseSchema'),
+        },
+      },
+    },
+    async (
+      res: FastifyReply,
+      req: FastifyRequest<{
+        Body: CreateAndUpdateMealInput
+      }>,
+    ) => {
+      const result = mealsBodySchema.safeParse(req.body)
 
-    const result = mealsBodySchema.safeParse(req.body)
+      if (!result.success) {
+        const errors = result.error.errors.map((err) => ({
+          field: err.path[0],
+          message: err.message,
+        }))
+        return res.status(400).send({ errors })
+      }
 
-    if (!result.success) {
-      const errors = result.error.errors.map((err) => ({
-        field: err.path[0],
-        message: err.message,
-      }))
-      return res.status(400).send({ errors })
-    }
+      await knex('meals').insert({
+        name: result.data.name,
+        description: result.data.description,
+        date: result.data.date,
+        hour: result.data.hour,
+        user_id: result.data.user_id,
+        isInDiet: result.data.isInDiet,
+      })
 
-    await knex('meals').insert({
-      name: result.data.name,
-      description: result.data.description,
-      date: result.data.date,
-      hour: result.data.hour,
-      user_id: result.data.user_id,
-      isInDiet: result.data.isInDiet,
-    })
-
-    res.status(201).send('Meal created successfully')
-  })
+      res.status(201).send('Meal created successfully')
+    },
+  )
 
   app.get('/:id', async (req, res) => {
     const getMealsParamsSchema = z.object({
