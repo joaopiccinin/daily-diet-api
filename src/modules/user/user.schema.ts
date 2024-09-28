@@ -10,7 +10,7 @@ const createUserSchema = z.object({
 export type CreateUserInput = z.infer<typeof createUserSchema>
 
 const createUserResponseSchema = z.object({
-  email: z.string(),
+  email: z.string().email(),
   name: z.string(),
 })
 
@@ -37,6 +37,6 @@ export const { schemas: userSchemas, $ref } = buildJsonSchemas(
     loginResponseSchema,
   },
   {
-    $id: 'userSchemas', // Prefixo opcional para evitar conflitos
+    $id: 'userSchemas',
   },
 )

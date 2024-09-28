@@ -1,9 +1,7 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { CreateUserInput, LoginUserInput } from './user.schema'
 import { knex } from '../../database'
-import bcrypt from 'bcrypt'
-
-const SALT_ROUNDS = 10
+import { createUserService, loginService, logoutService } from './user.service'
 
 export async function createUser(
   req: FastifyRequest<{
@@ -11,22 +9,22 @@ export async function createUser(
   }>,
   reply: FastifyReply,
 ) {
-  const { email, password, name } = req.body
-
-  const user = await knex('users').where({ email }).first()
-
-  if (user) {
-    return reply.status(400).send({ message: 'User already exists' })
-  }
-
   try {
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS)
-    const user = await knex('users').insert({
-      email,
-      password: hashedPassword,
-      name,
-    })
-    return reply.code(201).send(user)
+    const { email } = req.body
+    const userExists = await knex('users').where({ email }).first()
+    if (userExists) {
+      return reply.status(400).send({ message: 'User already exists' })
+    }
+
+    const userIsCreated = await createUserService(req)
+
+    if (!userIsCreated) {
+      return reply
+        .status(500)
+        .send({ message: 'An error occurred while creating the user' })
+    }
+
+    return reply.code(201).send('User created successfully')
   } catch (e) {
     return reply.code(500).send(e)
   }
@@ -38,33 +36,27 @@ export async function login(
   }>,
   reply: FastifyReply,
 ) {
-  const { email, password } = req.body
+  try {
+    const accessToken = await loginService(req)
 
-  const user = await knex('users').where({ email }).first()
+    if (!accessToken) {
+      return reply.code(401).send({
+        message: 'Invalid email or password',
+      })
+    }
 
-  const isMatch = user && (await bcrypt.compare(password, user.password))
-  if (!user || !isMatch) {
-    return reply.code(401).send({
-      message: 'Invalid email or password',
+    reply.setCookie('access_token', accessToken, {
+      path: '/',
+      httpOnly: true,
+      secure: true,
     })
-  }
-  const payload = {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-  }
 
-  const token = req.jwt.sign(payload)
-  reply.setCookie('access_token', token, {
-    path: '/',
-    httpOnly: true,
-    secure: true,
-  })
-
-  return { accessToken: token }
+    return { accessToken }
+  } catch (error) {
+    return reply.code(500).send(error)
+  }
 }
 
 export async function logout(req: FastifyRequest, reply: FastifyReply) {
-  reply.clearCookie('access_token')
-  return reply.send({ message: 'Logout successful' })
+  await logoutService(req, reply)
 }
