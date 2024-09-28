@@ -20,3 +20,13 @@ declare module '@fastify/jwt' {
     user: UserPayload
   }
 }
+
+export interface meal {
+  id: number
+  name: string
+  description: string
+  date: string
+  hour: string
+  isInDiet: boolean
+  user_id: number
+}

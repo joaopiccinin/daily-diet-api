@@ -23,7 +23,12 @@ const createAndUpdateMealResponseSchema = z.object({
   isInDiet: z.boolean(),
 })
 
-export const { schemas: mealSchemas, $ref } = buildJsonSchemas({
-  createAndUpdateMealSchema,
-  createAndUpdateMealResponseSchema,
-})
+export const { schemas: mealSchemas, $ref } = buildJsonSchemas(
+  {
+    createAndUpdateMealSchema,
+    createAndUpdateMealResponseSchema,
+  },
+  {
+    $id: 'mealSchemas',
+  },
+)

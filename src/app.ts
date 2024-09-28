@@ -5,6 +5,7 @@ import { userSchemas } from './modules/user/user.schema'
 import fjwt, { FastifyJWT } from '@fastify/jwt'
 import fCookie from '@fastify/cookie'
 import { env } from './env'
+import { mealSchemas } from './modules/meal/meal.schema'
 
 export const app = fastify()
 
@@ -15,8 +16,12 @@ app.register(fCookie, {
   hook: 'preHandler',
 })
 
-for (const schema of [...userSchemas]) {
-  app.addSchema(schema)
+for (const userSchema of [...userSchemas]) {
+  app.addSchema(userSchema)
+}
+
+for (const mealSchema of [...mealSchemas]) {
+  app.addSchema(mealSchema)
 }
 
 app.addHook('preHandler', (req, res, next) => {

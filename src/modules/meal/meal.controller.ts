@@ -1,31 +1,94 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
-import { knex } from '../../database'
+import { CreateAndUpdateMealInput } from './meal.schema'
+import {
+  createMealService,
+  deleteMealService,
+  getMealService,
+  getResumeService,
+  listMealsService,
+  resetBestInDietMealSequenceService,
+  updateMealService,
+} from './meal.service'
 
 export async function listMeals(req: FastifyRequest, res: FastifyReply) {
-  const meals = await knex('meals').select('*')
+  const meals = await listMealsService(req)
   res.status(200).send({ meals })
 }
 
-export async function createMeal(req: FastifyRequest, res: FastifyReply) {
-  const result = mealsBodySchema.safeParse(req.body)
+export async function getMeal(req: FastifyRequest, res: FastifyReply) {
+  const meal = await getMealService(req)
 
-  if (!result.success) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const errors = result.error.errors.map((err: any) => ({
-      field: err.path[0],
-      message: err.message,
-    }))
-    return res.status(400).send({ errors })
+  if (meal.length === 0) {
+    return res.status(404).send('Meal not found')
   }
 
-  await knex('meals').insert({
-    name: result.data.name,
-    description: result.data.description,
-    date: result.data.date,
-    hour: result.data.hour,
-    user_id: result.data.user_id,
-    isInDiet: result.data.isInDiet,
-  })
+  res.status(200).send({ meal })
+}
 
-  res.status(201).send('Meal created successfully')
+export async function createMeal(
+  req: FastifyRequest<{
+    Body: CreateAndUpdateMealInput
+  }>,
+  res: FastifyReply,
+) {
+  try {
+    await createMealService(req)
+    res.status(201).send('Meal created successfully')
+  } catch (error) {
+    return res
+      .status(500)
+      .send({ error: 'An error occurred while creating the meal' })
+  }
+}
+
+export async function updateMeal(
+  req: FastifyRequest<{
+    Body: CreateAndUpdateMealInput
+  }>,
+  res: FastifyReply,
+) {
+  try {
+    const updatedRows = await updateMealService(req)
+
+    if (updatedRows === 0) {
+      return res.status(404).send({ error: 'Meal not found' })
+    }
+
+    await resetBestInDietMealSequenceService(req)
+
+    return res.status(200).send({ message: 'Meal updated successfully' })
+  } catch (error) {
+    return res
+      .status(500)
+      .send({ error: 'An error occurred while updating the meal' })
+  }
+}
+
+export async function deleteMeal(req: FastifyRequest, res: FastifyReply) {
+  try {
+    const deletedRows = await deleteMealService(req)
+
+    if (deletedRows === 0) {
+      return res.status(404).send({ error: 'Meal not found' })
+    }
+
+    await resetBestInDietMealSequenceService(req)
+
+    res.status(200).send({ message: 'Meal deleted successfully' })
+  } catch (error) {
+    return res
+      .status(500)
+      .send({ error: 'An error occurred while deleting the meal' })
+  }
+}
+
+export async function getResume(req: FastifyRequest, res: FastifyReply) {
+  try {
+    const response = await getResumeService(req)
+    res.status(200).send(response)
+  } catch (error) {
+    return res
+      .status(500)
+      .send({ error: 'An error occurred while getting the meal resume' })
+  }
 }
