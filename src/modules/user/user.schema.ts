@@ -12,7 +12,6 @@ export type CreateUserInput = z.infer<typeof createUserSchema>
 const createUserResponseSchema = z.object({
   email: z.string().email(),
   name: z.string(),
-  message: z.string(),
 })
 
 const loginSchema = z.object({
