@@ -1,7 +1,7 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { CreateUserInput, LoginUserInput } from './user.schema'
 import { knex } from '../../database'
-import { createUserService, loginService, logoutService } from './user.service'
+import { createUserService, loginService } from './user.service'
 
 export async function createUser(
   req: FastifyRequest<{
@@ -58,5 +58,6 @@ export async function login(
 }
 
 export async function logout(req: FastifyRequest, reply: FastifyReply) {
-  await logoutService(req, reply)
+  reply.clearCookie('access_token')
+  return reply.code(200).send({ message: 'Logout successful' })
 }

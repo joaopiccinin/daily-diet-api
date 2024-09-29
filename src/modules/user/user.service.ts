@@ -1,4 +1,4 @@
-import { FastifyReply, FastifyRequest } from 'fastify'
+import { FastifyRequest } from 'fastify'
 import { CreateUserInput, LoginUserInput } from './user.schema'
 import { knex } from '../../database'
 import bcrypt from 'bcrypt'
@@ -42,9 +42,4 @@ export async function loginService(
   const token = req.jwt.sign(payload)
 
   return token
-}
-
-export async function logoutService(req: FastifyRequest, reply: FastifyReply) {
-  reply.clearCookie('access_token')
-  return reply.send({ message: 'Logout successful' })
 }

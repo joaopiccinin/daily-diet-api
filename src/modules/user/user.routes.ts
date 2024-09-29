@@ -29,5 +29,5 @@ export async function userRoutes(app: FastifyInstance) {
     login,
   )
 
-  app.delete('/logout', logout)
+  app.post('/logout', logout)
 }
